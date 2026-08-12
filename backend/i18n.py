@@ -382,6 +382,157 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "Could not read certificate information",
         "eu": "Ezin izan da ziurtagiriaren informazioa lortu",
     },
+    "sec.ssl.soon": {
+        "es": "Certificado válido pero caduca pronto ({days} días).",
+        "en": "Certificate valid but expires soon ({days} days).",
+        "eu": "Ziurtagiria balioduna da baina laster iraungitzen da ({days} egun).",
+    },
+    "sec.ssl.soon_rec": {
+        "es": "Renueva el certificado antes de que expire.",
+        "en": "Renew the certificate before it expires.",
+        "eu": "Berritu ziurtagiria iraungi aurretik.",
+    },
+    "sec.hsts.weak": {
+        "es": "HSTS presente pero max-age bajo ({max_age}s).",
+        "en": "HSTS present but max-age is low ({max_age}s).",
+        "eu": "HSTS presente da baina max-age baxua da ({max_age}s).",
+    },
+    "sec.hsts.weak_rec": {
+        "es": "Usa max-age de al menos 15552000 (6 meses), idealmente 31536000.",
+        "en": "Use max-age of at least 15552000 (6 months), ideally 31536000.",
+        "eu": "Erabili gutxienez 15552000eko max-age (6 hilabete), idealena 31536000.",
+    },
+    "sec.csp.weak": {
+        "es": "CSP presente pero permite {flags}.",
+        "en": "CSP present but allows {flags}.",
+        "eu": "CSP presente da baina {flags} baimentzen du.",
+    },
+    "sec.csp.weak_rec": {
+        "es": "Evita 'unsafe-inline' y 'unsafe-eval'; usa nonces o hashes.",
+        "en": "Avoid 'unsafe-inline' and 'unsafe-eval'; use nonces or hashes.",
+        "eu": "Saihestu 'unsafe-inline' eta 'unsafe-eval'; erabili nonce edo hash-ak.",
+    },
+    "sec.referrer.name": {
+        "es": "Referrer-Policy",
+        "en": "Referrer-Policy",
+        "eu": "Referrer-Policy",
+    },
+    "sec.referrer.ok": {
+        "es": "Referrer-Policy configurada ({value}).",
+        "en": "Referrer-Policy set ({value}).",
+        "eu": "Referrer-Policy konfiguratuta ({value}).",
+    },
+    "sec.referrer.missing": {
+        "es": "No se encontró cabecera Referrer-Policy.",
+        "en": "Referrer-Policy header not found.",
+        "eu": "Ez da Referrer-Policy goibururik aurkitu.",
+    },
+    "sec.referrer.missing_rec": {
+        "es": "Añade Referrer-Policy (p. ej. strict-origin-when-cross-origin).",
+        "en": "Add Referrer-Policy (e.g. strict-origin-when-cross-origin).",
+        "eu": "Gehitu Referrer-Policy (adib. strict-origin-when-cross-origin).",
+    },
+    "sec.permissions.name": {
+        "es": "Permissions-Policy",
+        "en": "Permissions-Policy",
+        "eu": "Permissions-Policy",
+    },
+    "sec.permissions.ok": {
+        "es": "Permissions-Policy (o Feature-Policy) presente.",
+        "en": "Permissions-Policy (or Feature-Policy) present.",
+        "eu": "Permissions-Policy (edo Feature-Policy) presente da.",
+    },
+    "sec.permissions.missing": {
+        "es": "No se encontró Permissions-Policy.",
+        "en": "Permissions-Policy not found.",
+        "eu": "Ez da Permissions-Policy aurkitu.",
+    },
+    "sec.permissions.missing_rec": {
+        "es": "Limita cámara, micrófono, geolocalización, etc. con Permissions-Policy.",
+        "en": "Limit camera, mic, geolocation, etc. with Permissions-Policy.",
+        "eu": "Mugatu kamera, mikrofonoa, geolokalizazioa, etab. Permissions-Policy-rekin.",
+    },
+    "sec.cookies.name": {
+        "es": "Cookies (Secure / HttpOnly / SameSite)",
+        "en": "Cookies (Secure / HttpOnly / SameSite)",
+        "eu": "Cookieak (Secure / HttpOnly / SameSite)",
+    },
+    "sec.cookies.none": {
+        "es": "No se detectaron cookies en la respuesta inicial.",
+        "en": "No cookies detected on the initial response.",
+        "eu": "Hasierako erantzunean ez da cookierik detektatu.",
+    },
+    "sec.cookies.ok": {
+        "es": "{count} cookie(s) con flags de seguridad adecuados.",
+        "en": "{count} cookie(s) with proper security flags.",
+        "eu": "{count} cookie segurtasun-flag egokiekin.",
+    },
+    "sec.cookies.weak": {
+        "es": "{count} cookie(s): sin Secure={secure}, sin HttpOnly={httponly}, sin SameSite={samesite}.",
+        "en": "{count} cookie(s): missing Secure={secure}, HttpOnly={httponly}, SameSite={samesite}.",
+        "eu": "{count} cookie: Secure gabe={secure}, HttpOnly gabe={httponly}, SameSite gabe={samesite}.",
+    },
+    "sec.cookies.weak_rec": {
+        "es": "Marca cookies sensibles con Secure, HttpOnly y SameSite=Lax o Strict.",
+        "en": "Mark sensitive cookies with Secure, HttpOnly and SameSite=Lax or Strict.",
+        "eu": "Markatu cookie sentikorrak Secure, HttpOnly eta SameSite=Lax edo Strict-ekin.",
+    },
+    "sec.cors.name": {"es": "CORS", "en": "CORS", "eu": "CORS"},
+    "sec.cors.none": {
+        "es": "Sin Access-Control-Allow-Origin en la respuesta (habitual en sitios web).",
+        "en": "No Access-Control-Allow-Origin on the response (common for websites).",
+        "eu": "Erantzunean ez dago Access-Control-Allow-Origin (ohikoa webguneetan).",
+    },
+    "sec.cors.ok": {
+        "es": "CORS restringido ({value}).",
+        "en": "CORS restricted ({value}).",
+        "eu": "CORS mugatua ({value}).",
+    },
+    "sec.cors.star": {
+        "es": "CORS permite cualquier origen (*).",
+        "en": "CORS allows any origin (*).",
+        "eu": "CORS-ek edozein jatorri (*) baimentzen du.",
+    },
+    "sec.cors.star_rec": {
+        "es": "Limita Access-Control-Allow-Origin a dominios de confianza.",
+        "en": "Limit Access-Control-Allow-Origin to trusted domains.",
+        "eu": "Mugatu Access-Control-Allow-Origin konfiantzazko domeinuetara.",
+    },
+    "sec.cors.star_creds": {
+        "es": "CORS peligroso: * junto con Access-Control-Allow-Credentials.",
+        "en": "Dangerous CORS: * together with Access-Control-Allow-Credentials.",
+        "eu": "CORS arriskutsua: * Access-Control-Allow-Credentials-ekin.",
+    },
+    "sec.cors.star_creds_rec": {
+        "es": "Nunca combines ACAO:* con credenciales; usa orígenes explícitos.",
+        "en": "Never combine ACAO:* with credentials; use explicit origins.",
+        "eu": "Inoiz ez konbinatu ACAO:* kredentzialekin; erabili jatorri esplizituak.",
+    },
+    "sec.server.name": {
+        "es": "Cabecera Server",
+        "en": "Server header",
+        "eu": "Server goiburua",
+    },
+    "sec.server.hidden": {
+        "es": "No se expone cabecera Server.",
+        "en": "Server header not exposed.",
+        "eu": "Server goiburua ez da agerian.",
+    },
+    "sec.server.ok": {
+        "es": "Server presente sin versión evidente ({value}).",
+        "en": "Server present without an obvious version ({value}).",
+        "eu": "Server presente da bertsio argirik gabe ({value}).",
+    },
+    "sec.server.version": {
+        "es": "Server revela software/versión ({value}).",
+        "en": "Server reveals software/version ({value}).",
+        "eu": "Server-ek softwarea/bertsioa agerian uzten du ({value}).",
+    },
+    "sec.server.version_rec": {
+        "es": "Oculta o generaliza la cabecera Server para no filtrar versión.",
+        "en": "Hide or generalize the Server header to avoid leaking version info.",
+        "eu": "Ezkutatu edo orokortu Server goiburua bertsioa ez filtratzeko.",
+    },
     # --- GDPR ---
     "gdpr.track.name": {
         "es": "Scripts de rastreo",
