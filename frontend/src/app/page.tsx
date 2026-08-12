@@ -211,7 +211,7 @@ export default function Home() {
               <h3 className="font-display text-xl font-bold text-ink mb-1">{t("pricing.pro")}</h3>
               <p className="text-sm text-muted mb-6">{t("pricing.pro_desc")}</p>
               <p className="mb-6">
-                <span className="font-display text-4xl font-bold text-ink">19€</span>
+                <span className="font-display text-4xl font-bold text-ink">{t("pricing.pro_price")}</span>
                 <span className="text-muted">{t("pricing.month")}</span>
               </p>
               <ul className="space-y-3 text-sm text-ink mb-8 flex-1">
@@ -227,7 +227,7 @@ export default function Home() {
               <h3 className="font-display text-xl font-bold text-ink mb-1">{t("pricing.agency")}</h3>
               <p className="text-sm text-muted mb-6">{t("pricing.agency_desc")}</p>
               <p className="mb-6">
-                <span className="font-display text-4xl font-bold text-ink">99€</span>
+                <span className="font-display text-4xl font-bold text-ink">{t("pricing.agency_price")}</span>
                 <span className="text-muted">{t("pricing.month")}</span>
               </p>
               <ul className="space-y-3 text-sm text-muted mb-8 flex-1">

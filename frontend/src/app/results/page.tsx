@@ -6,6 +6,7 @@ import ScoreRing from "@/components/ScoreRing";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Lang } from "@/lib/i18n/translations";
+import { downloadAuditPdf } from "@/lib/exportReportPdf";
 
 function ResultsContent() {
   const searchParams = useSearchParams();
@@ -20,6 +21,7 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   useEffect(() => {
     if (langParam && ['es','en','eu'].includes(langParam) && langParam !== uiLang) {
@@ -112,6 +114,21 @@ function ResultsContent() {
 
   if (!result) return null;
 
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfBusy(true);
+      await downloadAuditPdf(result, {
+        title: t("results.report"),
+        brand: "WebHealthIQ",
+      });
+    } catch (err) {
+      console.error(err);
+      alert(t("results.error_generic"));
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   // Calculate a fake overall score for MVP
   const seoScore = result.modules?.seo?.score || 0;
   const perfScore = result.modules?.performance?.score || 0;
@@ -126,8 +143,8 @@ function ResultsContent() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12 bg-surface border border-border p-8 rounded-md animate-fade-up">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <h1 className="text-3xl font-bold">{t("results.report")}</h1>
               <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-md border border-primary/20">
                 {t("results.mvp")}
@@ -135,10 +152,21 @@ function ResultsContent() {
             </div>
             <a href={result.url} target="_blank" rel="noreferrer" className="text-muted hover:text-primary transition-colors flex items-center gap-2 text-lg break-all">
               {result.url}
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={pdfBusy}
+              className="btn-primary mt-5 text-sm py-2 px-4 inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfBusy ? t("results.pdf_generating") : t("results.pdf")}
+            </button>
           </div>
           <div className="flex items-center justify-center shrink-0">
              <ScoreRing score={overallScore} size={160} label={t("results.global")} />
@@ -457,6 +485,14 @@ function ResultsContent() {
                    </svg>
                  </button>
                </div>
+               <button
+                 type="button"
+                 onClick={handleDownloadPdf}
+                 disabled={pdfBusy}
+                 className="btn-secondary w-full mt-4 text-sm py-2 disabled:opacity-60"
+               >
+                 {pdfBusy ? t("results.pdf_generating") : t("results.pdf")}
+               </button>
              </div>
           </div>
         </div>
