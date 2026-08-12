@@ -18,3 +18,13 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: https://webhealthiq.com,https://www.webhealthiq.com,http://localhost:3000
+      - key: APP_URL
+        value: https://webhealthiq.com
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_AGENCY
+        sync: false
