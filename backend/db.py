@@ -40,6 +40,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(120), nullable=True)
+    company = Column(String(120), nullable=True)
+    terms_accepted_at = Column(DateTime, nullable=True)
     plan = Column(String(32), nullable=False, default="free")
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
@@ -73,6 +76,29 @@ class AuditLog(Base):
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    # Lightweight migrations for existing DBs (SQLite/Postgres).
+    with engine.begin() as conn:
+        dialect = engine.dialect.name
+        existing = set()
+        if dialect == "sqlite":
+            rows = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+            existing = {r[1] for r in rows}
+        else:
+            rows = conn.exec_driver_sql(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'users'"
+            ).fetchall()
+            existing = {r[0] for r in rows}
+
+        alters = []
+        if "full_name" not in existing:
+            alters.append("ALTER TABLE users ADD COLUMN full_name VARCHAR(120)")
+        if "company" not in existing:
+            alters.append("ALTER TABLE users ADD COLUMN company VARCHAR(120)")
+        if "terms_accepted_at" not in existing:
+            alters.append("ALTER TABLE users ADD COLUMN terms_accepted_at TIMESTAMP")
+        for stmt in alters:
+            conn.exec_driver_sql(stmt)
 
 
 def get_db():

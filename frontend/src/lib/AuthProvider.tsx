@@ -18,11 +18,20 @@ import {
   type AuthUser,
 } from "@/lib/authStorage";
 
+type RegisterPayload = {
+  email: string;
+  password: string;
+  password_confirm: string;
+  full_name: string;
+  company?: string;
+  accept_terms: boolean;
+};
+
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -78,10 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }, []);
 
-  const register = useCallback(async (email: string, password: string) => {
+  const register = useCallback(async (payload: RegisterPayload) => {
     const res = await apiFetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {

@@ -60,8 +60,11 @@ export default function Navbar() {
             <LanguageSwitcher />
             {!loading && user ? (
               <>
-                <span className="hidden sm:inline text-xs text-muted max-w-[140px] truncate" title={user.email}>
-                  {user.audits_used}/{user.audits_limit} · {user.plan}
+                <span
+                  className="hidden sm:inline text-xs text-muted max-w-[160px] truncate"
+                  title={user.email}
+                >
+                  {(user.full_name || user.email.split("@")[0])} · {user.audits_used}/{user.audits_limit}
                 </span>
                 <button
                   type="button"

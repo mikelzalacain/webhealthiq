@@ -13,8 +13,12 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
   const search = useSearchParams();
   const next = search.get("next") || "/";
 
+  const [fullName, setFullName] = useState("");
+  const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,10 +30,32 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (mode === "register") {
+      if (password !== passwordConfirm) {
+        setError(t("auth.password_mismatch"));
+        return;
+      }
+      if (!acceptTerms) {
+        setError(t("auth.terms_required"));
+        return;
+      }
+    }
+
     setBusy(true);
     try {
-      if (mode === "login") await login(email, password);
-      else await register(email, password);
+      if (mode === "login") {
+        await login(email, password);
+      } else {
+        await register({
+          email,
+          password,
+          password_confirm: passwordConfirm,
+          full_name: fullName,
+          company: company.trim() || undefined,
+          accept_terms: acceptTerms,
+        });
+      }
       router.push(next.startsWith("/") ? next : "/");
     } catch (err: any) {
       setError(err?.message || t("auth.error"));
@@ -47,6 +73,38 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {mode === "register" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  {t("auth.full_name")}
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-ink focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  {t("auth.company")}{" "}
+                  <span className="text-muted font-normal">({t("auth.optional")})</span>
+                </label>
+                <input
+                  type="text"
+                  autoComplete="organization"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-ink focus:outline-none focus:border-primary"
+                />
+              </div>
+            </>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-ink mb-1.5">
               {t("auth.email")}
@@ -60,6 +118,7 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
               className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-ink focus:outline-none focus:border-primary"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-ink mb-1.5">
               {t("auth.password")}
@@ -77,6 +136,46 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
               <p className="text-xs text-muted mt-1.5">{t("auth.password_hint")}</p>
             )}
           </div>
+
+          {mode === "register" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  {t("auth.password_confirm")}
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-ink focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <label className="flex items-start gap-2.5 text-sm text-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-1"
+                  required
+                />
+                <span>
+                  {t("auth.terms_prefix")}{" "}
+                  <Link href="/#pricing" className="text-primary font-medium">
+                    {t("auth.terms_link")}
+                  </Link>{" "}
+                  {t("auth.and")}{" "}
+                  <Link href="/#pricing" className="text-primary font-medium">
+                    {t("auth.privacy_link")}
+                  </Link>
+                  .
+                </span>
+              </label>
+            </>
+          )}
 
           {error && (
             <p className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-md px-3 py-2">

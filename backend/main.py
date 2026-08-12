@@ -67,6 +67,10 @@ class AuditResponse(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    password_confirm: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=2, max_length=120)
+    company: str | None = Field(default=None, max_length=120)
+    accept_terms: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -83,6 +87,8 @@ class AuthResponse(BaseModel):
 class MeResponse(BaseModel):
     id: int
     email: str
+    full_name: str | None = None
+    company: str | None = None
     plan: str
     audits_used: int
     audits_limit: int
@@ -131,6 +137,8 @@ def _user_payload(user: User, used: int, limit: int, year_month: str) -> dict:
     return {
         "id": user.id,
         "email": user.email,
+        "full_name": user.full_name,
+        "company": user.company,
         "plan": user.plan,
         "audits_used": used,
         "audits_limit": limit,
@@ -141,12 +149,28 @@ def _user_payload(user: User, used: int, limit: int, year_month: str) -> dict:
 @app.post("/api/auth/register", response_model=AuthResponse)
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     email = body.email.lower().strip()
+    full_name = (body.full_name or "").strip()
+    company = (body.company or "").strip() or None
+
     if get_user_by_email(db, email):
         raise HTTPException(status_code=400, detail="Email already registered")
     if len(body.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if body.password != body.password_confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(full_name) < 2:
+        raise HTTPException(status_code=400, detail="Full name is required")
+    if not body.accept_terms:
+        raise HTTPException(status_code=400, detail="You must accept the terms")
 
-    user = User(email=email, password_hash=hash_password(body.password), plan="free")
+    user = User(
+        email=email,
+        password_hash=hash_password(body.password),
+        full_name=full_name,
+        company=company,
+        terms_accepted_at=datetime.utcnow(),
+        plan="free",
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -182,6 +206,8 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return MeResponse(
         id=user.id,
         email=user.email,
+        full_name=user.full_name,
+        company=user.company,
         plan=user.plan,
         audits_used=usage.count,
         audits_limit=limit,

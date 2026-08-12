@@ -8,6 +8,8 @@ const USER_KEY = "whiq_user";
 export type AuthUser = {
   id: number;
   email: string;
+  full_name?: string | null;
+  company?: string | null;
   plan: string;
   audits_used: number;
   audits_limit: number;
