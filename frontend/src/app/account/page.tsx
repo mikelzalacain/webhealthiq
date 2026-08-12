@@ -45,6 +45,49 @@ function AccountContent() {
     }
   }, [searchParams, refreshMe, t]);
 
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!user || authLoading) return;
+    if (checkout !== "pro" && checkout !== "agency") return;
+
+    let cancelled = false;
+    const run = async () => {
+      setBillingError(null);
+      setPortalBusy(true);
+      try {
+        const res = await apiFetch("/api/billing/checkout", {
+          method: "POST",
+          body: JSON.stringify({ plan: checkout }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            typeof data.detail === "string"
+              ? data.detail
+              : res.status === 503
+                ? t("billing.unavailable")
+                : t("billing.error")
+          );
+        }
+        if (!data.url || typeof data.url !== "string") {
+          throw new Error(t("billing.error"));
+        }
+        if (!cancelled) window.location.assign(data.url);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setBillingError(
+            err instanceof Error ? err.message : t("billing.error")
+          );
+          setPortalBusy(false);
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, user, authLoading, t]);
+
   const plan = (user?.plan || "free").toLowerCase();
   const isAgency = plan === "agency";
   const isPaid = plan === "pro" || plan === "agency";

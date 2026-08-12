@@ -29,7 +29,9 @@ export default function SubscribeButton({ plan, className, label }: Props) {
     if (authLoading) return;
 
     if (!getToken() || !user) {
-      router.push(`/login?next=${encodeURIComponent("/account")}`);
+      router.push(
+        `/login?next=${encodeURIComponent(`/account?checkout=${plan}`)}`
+      );
       return;
     }
 
@@ -42,13 +44,17 @@ export default function SubscribeButton({ plan, className, label }: Props) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const detail =
-          typeof data.detail === "string" ? data.detail : t("billing.error");
+          typeof data.detail === "string"
+            ? data.detail
+            : res.status === 503
+              ? t("billing.unavailable")
+              : t("billing.error");
         throw new Error(detail);
       }
       if (!data.url || typeof data.url !== "string") {
         throw new Error(t("billing.error"));
       }
-      window.location.href = data.url;
+      window.location.assign(data.url);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t("billing.error");
       setError(msg);

@@ -6,6 +6,7 @@ import ScoreRing from "@/components/ScoreRing";
 import SubscribeButton from "@/components/SubscribeButton";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/lib/AuthProvider";
+import { getToken } from "@/lib/authStorage";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -214,7 +215,10 @@ export default function Home() {
                 <li>{t("pricing.b2")}</li>
                 <li>{t("pricing.b3")}</li>
               </ul>
-              <a href="/#audit" className="btn-secondary w-full text-center">
+              <a
+                href={user || getToken() ? "/#audit" : "/register"}
+                className="btn-secondary w-full text-center"
+              >
                 {t("pricing.start")}
               </a>
             </div>
@@ -235,7 +239,7 @@ export default function Home() {
                 <li>{t("pricing.p3")}</li>
                 <li>{t("pricing.p4")}</li>
               </ul>
-              <SubscribeButton plan="pro" />
+              <SubscribeButton plan="pro" label={t("pricing.subscribe")} />
             </div>
 
             <div className="panel rounded-md p-7 flex flex-col">
@@ -253,6 +257,7 @@ export default function Home() {
               </ul>
               <SubscribeButton
                 plan="agency"
+                label={t("pricing.talk")}
                 className="btn-secondary w-full text-center disabled:opacity-60"
               />
             </div>
