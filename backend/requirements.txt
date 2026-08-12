@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+beautifulsoup4
+httpx
+pydantic
+pytest
+pytest-asyncio
+playwright
+axe-playwright-python
