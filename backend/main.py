@@ -755,4 +755,10 @@ def read_root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "stripe_configured": stripe_configured()}
+
+
+@app.get("/api/billing/status")
+def billing_status():
+    """Public check: whether Stripe env vars are present (no secrets exposed)."""
+    return {"configured": stripe_configured()}
