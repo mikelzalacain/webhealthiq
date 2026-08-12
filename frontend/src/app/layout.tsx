@@ -82,7 +82,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico?v=20260812c", sizes: "any" },
+      { url: "/favicon.ico?v=20260812d", sizes: "any" },
       { url: FAVICON_32, type: "image/png", sizes: "32x32" },
       { url: ICON_64, type: "image/png", sizes: "64x64" },
       { url: LOGO_SRC, type: "image/png", sizes: "512x512" },
