@@ -6,6 +6,7 @@ import Image from "next/image";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/lib/AuthProvider";
+import { LOGO_SRC } from "@/lib/brandAssets";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,14 +30,15 @@ export default function Navbar() {
       <nav aria-label="Principal" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <div className="relative w-9 h-9 overflow-hidden rounded-md bg-primary">
+            <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-md">
               <Image
-                src="/icon-64.png"
+                src={LOGO_SRC}
                 alt="WebHealthIQ"
-                fill
-                sizes="36px"
-                className="object-contain p-1"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-cover"
                 priority
+                unoptimized
               />
             </div>
             <span className="font-display text-xl font-bold tracking-tight text-ink group-hover:text-primary transition-colors">

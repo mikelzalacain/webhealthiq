@@ -9,14 +9,29 @@ DEFAULT_LANG = "es"
 MESSAGES: dict[str, dict[str, str]] = {
     # --- API errors ---
     "err.url_access": {
+        "es": "No se pudo acceder a la URL.",
+        "en": "Could not access the URL.",
+        "eu": "Ezin izan da URLa atzitu.",
+    },
+    "err.url_access_detail": {
         "es": "No se pudo acceder a la URL: {error}",
         "en": "Could not access the URL: {error}",
         "eu": "Ezin izan da URLa atzitu: {error}",
     },
     "err.internal": {
+        "es": "Error interno del servidor.",
+        "en": "Internal server error.",
+        "eu": "Zerbitzariaren barne-errorea.",
+    },
+    "err.internal_detail": {
         "es": "Error interno del servidor: {error}",
         "en": "Internal server error: {error}",
         "eu": "Zerbitzariaren barne-errorea: {error}",
+    },
+    "err.ssrf": {
+        "es": "La URL no está permitida por política de seguridad.",
+        "en": "This URL is not allowed by security policy.",
+        "eu": "URL hau ez da onartzen segurtasun politikagatik.",
     },
     "err.quota": {
         "es": "Has alcanzado el límite de tu plan {plan}: {used}/{limit} auditorías este mes. Sube a Pro para continuar.",

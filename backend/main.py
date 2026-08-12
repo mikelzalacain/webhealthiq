@@ -1,10 +1,14 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urljoin
 import json
+import logging
+import os
 import secrets
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from analyzers.seo import SEOAnalyzer
 from i18n import t, normalize_lang
@@ -24,16 +28,51 @@ from auth import (
     get_current_user,
     get_user_by_email,
     hash_password,
+    hash_reset_token,
+    is_production,
+    validate_password_policy,
     verify_password,
 )
 from db import User
+from ratelimit import enforce_rate_limit, rate_limit_ip
+from ssrf import MAX_REDIRECTS, SSRFError, validate_url_for_fetch
+
+logger = logging.getLogger("webhealthiq")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="WebHealthIQ API")
+
+
+def _cors_origins() -> list[str]:
+    raw = os.getenv(
+        "CORS_ORIGINS",
+        "https://webhealthiq.com,https://www.webhealthiq.com,http://localhost:3000",
+    )
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    return origins or [
+        "https://webhealthiq.com",
+        "https://www.webhealthiq.com",
+        "http://localhost:3000",
+    ]
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return response
 
 
 @app.on_event("startup")
 def on_startup():
     init_db()
+    logger.info(
+        "WebHealthIQ API started (production=%s, cors_origins=%s)",
+        is_production(),
+        _cors_origins(),
+    )
 
 
 BROWSER_HEADERS = {
@@ -46,9 +85,10 @@ BROWSER_HEADERS = {
     "Accept-Language": "es-ES,es;q=0.9,en;q=0.8,eu;q=0.7",
 }
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins(),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -138,9 +178,19 @@ class AuditDetailResponse(BaseModel):
     insights: dict | None
 
 
+def _client_error_detail(lang: str, key: str, *, error: Exception | str | None = None) -> str:
+    """Public error message: generic in production, detailed in local/dev."""
+    if is_production() or error is None:
+        return t(key, lang)
+    err_text = str(error) if not isinstance(error, str) else error
+    return t(f"{key}_detail", lang, error=err_text)
+
+
 async def fetch_html_with_browser(url: str) -> tuple[str, str]:
     from playwright.async_api import async_playwright
     from browser import launch_chromium
+
+    validate_url_for_fetch(url)
 
     async with async_playwright() as p:
         browser = await launch_chromium(p)
@@ -155,21 +205,40 @@ async def fetch_html_with_browser(url: str) -> tuple[str, str]:
         html = await page.content()
         final_url = page.url
         await browser.close()
+        try:
+            validate_url_for_fetch(final_url)
+        except SSRFError:
+            raise SSRFError("Redirect target is not allowed")
         return final_url, html
 
 
 async def fetch_page_html(url: str) -> tuple[str, str]:
     import httpx
 
+    current = validate_url_for_fetch(url)
+
     async with httpx.AsyncClient(
         timeout=30.0,
         headers=BROWSER_HEADERS,
-        follow_redirects=True,
+        follow_redirects=False,
     ) as client:
         try:
-            response = await client.get(url)
-            if response.status_code < 400 and response.text.strip():
-                return str(response.url), response.text
+            for _ in range(MAX_REDIRECTS + 1):
+                validate_url_for_fetch(current)
+                response = await client.get(current)
+                if response.is_redirect:
+                    location = response.headers.get("location")
+                    if not location:
+                        break
+                    current = urljoin(str(response.url), location)
+                    continue
+                if response.status_code < 400 and response.text.strip():
+                    final = str(response.url)
+                    validate_url_for_fetch(final)
+                    return final, response.text
+                break
+        except SSRFError:
+            raise
         except Exception:
             pass
 
@@ -204,15 +273,16 @@ def _iso(dt: datetime | None) -> str:
 
 
 @app.post("/api/auth/register", response_model=AuthResponse)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit_ip(request, scope="auth.register", limit=5, window_seconds=60)
+
     email = body.email.lower().strip()
     full_name = (body.full_name or "").strip()
     company = (body.company or "").strip() or None
 
     if get_user_by_email(db, email):
         raise HTTPException(status_code=400, detail="Email already registered")
-    if len(body.password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    validate_password_policy(body.password)
     if body.password != body.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords do not match")
     if len(full_name) < 2:
@@ -242,7 +312,9 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/api/auth/login", response_model=AuthResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    rate_limit_ip(request, scope="auth.login", limit=10, window_seconds=60)
+
     user = get_user_by_email(db, body.email)
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -275,23 +347,30 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 
 
 @app.post("/api/auth/forgot-password")
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(
+    body: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """Always returns a generic 200 to avoid email enumeration."""
+    rate_limit_ip(request, scope="auth.forgot", limit=5, window_seconds=60)
+    email = body.email.lower().strip()
+    enforce_rate_limit(f"auth.forgot:email:{email}", limit=3, window_seconds=3600)
+
     user = get_user_by_email(db, body.email)
     if user:
-        token = secrets.token_urlsafe(32)
+        plain_token = secrets.token_urlsafe(32)
         row = PasswordResetToken(
             user_id=user.id,
-            token=token,
+            token=hash_reset_token(plain_token),
             expires_at=_utc_now() + timedelta(hours=1),
         )
         db.add(row)
         db.commit()
         try:
-            send_password_reset(user.email, token)
+            send_password_reset(user.email, plain_token)
         except Exception:
-            # Don't leak SMTP failures to the client
-            pass
+            logger.exception("Failed to send password reset email")
     return {
         "ok": True,
         "message": "If the email exists, you will receive reset instructions.",
@@ -299,15 +378,21 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/api/auth/reset-password")
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(
+    body: ResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    rate_limit_ip(request, scope="auth.reset", limit=10, window_seconds=60)
+
     if body.password != body.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords do not match")
-    if len(body.password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    validate_password_policy(body.password)
 
+    token_hash = hash_reset_token(body.token.strip())
     row = (
         db.query(PasswordResetToken)
-        .filter(PasswordResetToken.token == body.token.strip())
+        .filter(PasswordResetToken.token == token_hash)
         .first()
     )
     if not row or row.used_at is not None:
@@ -365,12 +450,15 @@ def update_branding(
 
 @app.post("/api/audit", response_model=AuditResponse)
 async def audit_url(
-    request: AuditRequest,
+    body: AuditRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    url = request.url
-    lang = normalize_lang(request.lang)
+    rate_limit_ip(request, scope="audit", limit=20, window_seconds=60)
+
+    url = body.url
+    lang = normalize_lang(body.lang)
 
     usage = get_or_create_usage(db, user)
     limit = plan_limit(user.plan)
@@ -388,11 +476,27 @@ async def audit_url(
 
     try:
         try:
-            final_url, html_content = await fetch_page_html(url)
-        except Exception as e:
+            url = validate_url_for_fetch(url)
+        except SSRFError:
+            logger.warning("SSRF blocked URL for user_id=%s", user.id)
             raise HTTPException(
                 status_code=400,
-                detail=t("err.url_access", lang, error=str(e)),
+                detail=t("err.ssrf", lang),
+            )
+
+        try:
+            final_url, html_content = await fetch_page_html(url)
+        except SSRFError:
+            logger.warning("SSRF blocked during fetch for user_id=%s", user.id)
+            raise HTTPException(
+                status_code=400,
+                detail=t("err.ssrf", lang),
+            )
+        except Exception as e:
+            logger.exception("URL access failed for user_id=%s", user.id)
+            raise HTTPException(
+                status_code=400,
+                detail=_client_error_detail(lang, "err.url_access", error=e),
             )
 
         url = final_url or url
@@ -467,7 +571,11 @@ async def audit_url(
     except HTTPException as he:
         raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=t("err.internal", lang, error=str(e)))
+        logger.exception("Internal audit error for user_id=%s", user.id)
+        raise HTTPException(
+            status_code=500,
+            detail=_client_error_detail(lang, "err.internal", error=e),
+        )
 
 
 @app.get("/api/audits", response_model=list[AuditListItem])

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { AuthProvider } from "@/lib/AuthProvider";
+import { FAVICON_32, ICON_64, ICON_192, LOGO_SRC } from "@/lib/brandAssets";
 
 const syne = Syne({
   variable: "--font-display",
@@ -66,7 +67,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/og.png",
+        url: "/og.png?v=20260812c",
         width: 1200,
         height: 630,
         alt: "WebHealthIQ — Auditorías web inteligentes",
@@ -77,14 +78,17 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og.png"],
+    images: ["/og.png?v=20260812c"],
   },
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
-      { url: "/icon-64.png", type: "image/png", sizes: "64x64" },
+      { url: "/favicon.ico?v=20260812c", sizes: "any" },
+      { url: FAVICON_32, type: "image/png", sizes: "32x32" },
+      { url: ICON_64, type: "image/png", sizes: "64x64" },
+      { url: LOGO_SRC, type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/icon-192.png", sizes: "192x192" }],
+    apple: [{ url: ICON_192, sizes: "192x192" }],
+    shortcut: [FAVICON_32],
   },
 };
 
@@ -106,7 +110,7 @@ const jsonLd = {
     name: "WebHealthIQ",
     url: siteUrl,
     email: "hello@webhealthiq.com",
-    logo: `${siteUrl}/icon-192.png`,
+    logo: `${siteUrl}${LOGO_SRC}`,
   },
 };
 

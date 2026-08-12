@@ -10,9 +10,11 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: ENV
+        value: production
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
-        sync: false
-      - key: JWT_SECRET
         generateValue: true
+      - key: CORS_ORIGINS
+        value: https://webhealthiq.com,https://www.webhealthiq.com,http://localhost:3000

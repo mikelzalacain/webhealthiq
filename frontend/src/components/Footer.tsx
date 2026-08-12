@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { LOGO_SRC } from "@/lib/brandAssets";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -14,13 +15,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="relative w-8 h-8 rounded-md bg-primary overflow-hidden">
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md">
                 <Image
-                  src="/icon-64.png"
+                  src={LOGO_SRC}
                   alt="WebHealthIQ"
-                  fill
-                  sizes="32px"
-                  className="object-contain p-1"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-cover"
+                  unoptimized
                 />
               </div>
               <span className="font-display text-lg font-bold text-ink tracking-tight">
