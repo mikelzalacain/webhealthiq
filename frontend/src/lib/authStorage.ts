@@ -10,6 +10,8 @@ export type AuthUser = {
   email: string;
   full_name?: string | null;
   company?: string | null;
+  brand_name?: string | null;
+  brand_primary?: string | null;
   plan: string;
   audits_used: number;
   audits_limit: number;

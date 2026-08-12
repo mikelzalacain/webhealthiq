@@ -19,19 +19,19 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav
+    <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? "bg-surface/90 backdrop-blur-md border-b border-border py-3"
           : "bg-transparent py-5"
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav aria-label="Principal" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="relative w-9 h-9 overflow-hidden rounded-md bg-primary">
               <Image
-                src="/logo.png"
+                src="/icon-64.png"
                 alt="WebHealthIQ"
                 fill
                 sizes="36px"
@@ -54,6 +54,16 @@ export default function Navbar() {
             <Link href="/#pricing" className="text-sm font-medium text-muted hover:text-ink transition-colors">
               {t("nav.pricing")}
             </Link>
+            {!loading && user && (
+              <>
+                <Link href="/history" className="text-sm font-medium text-muted hover:text-ink transition-colors">
+                  {t("nav.history")}
+                </Link>
+                <Link href="/account" className="text-sm font-medium text-muted hover:text-ink transition-colors">
+                  {t("nav.account")}
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -66,6 +76,12 @@ export default function Navbar() {
                 >
                   {(user.full_name || user.email.split("@")[0])} · {user.audits_used}/{user.audits_limit}
                 </span>
+                <Link
+                  href="/history"
+                  className="md:hidden text-sm font-semibold text-muted hover:text-ink transition-colors px-2 py-2"
+                >
+                  {t("nav.history")}
+                </Link>
                 <button
                   type="button"
                   onClick={logout}
@@ -90,7 +106,7 @@ export default function Navbar() {
             </Link>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 }

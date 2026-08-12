@@ -135,6 +135,13 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
             {mode === "register" && (
               <p className="text-xs text-muted mt-1.5">{t("auth.password_hint")}</p>
             )}
+            {mode === "login" && (
+              <p className="text-sm mt-2">
+                <Link href="/forgot-password" className="text-primary font-medium">
+                  {t("auth.forgot_link")}
+                </Link>
+              </p>
+            )}
           </div>
 
           {mode === "register" && (
@@ -164,12 +171,16 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
                 />
                 <span>
                   {t("auth.terms_prefix")}{" "}
-                  <Link href="/#pricing" className="text-primary font-medium">
+                  <Link href="/terms" className="text-primary font-medium">
                     {t("auth.terms_link")}
+                  </Link>
+                  ,{" "}
+                  <Link href="/privacy" className="text-primary font-medium">
+                    {t("auth.privacy_link")}
                   </Link>{" "}
                   {t("auth.and")}{" "}
-                  <Link href="/#pricing" className="text-primary font-medium">
-                    {t("auth.privacy_link")}
+                  <Link href="/cookies" className="text-primary font-medium">
+                    {t("footer.cookies")}
                   </Link>
                   .
                 </span>

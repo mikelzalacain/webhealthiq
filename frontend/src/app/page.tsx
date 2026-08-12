@@ -41,10 +41,10 @@ export default function Home() {
   };
 
   const modules = [
-    { title: t("mod.seo"), desc: t("mod.seo_desc"), tone: "bg-primary/10 text-primary" },
-    { title: t("mod.perf"), desc: t("mod.perf_desc"), tone: "bg-accent/10 text-accent" },
-    { title: t("mod.a11y"), desc: t("mod.a11y_desc"), tone: "bg-success/10 text-success" },
-    { title: t("mod.sec"), desc: t("mod.sec_desc"), tone: "bg-warning/15 text-warning" },
+    { title: t("mod.seo"), desc: t("mod.seo_desc"), tone: "bg-primary/10 text-primary-dark" },
+    { title: t("mod.perf"), desc: t("mod.perf_desc"), tone: "bg-accent/10 text-[#9a3412]" },
+    { title: t("mod.a11y"), desc: t("mod.a11y_desc"), tone: "bg-success/10 text-[#166534]" },
+    { title: t("mod.sec"), desc: t("mod.sec_desc"), tone: "bg-warning/15 text-[#854d0e]" },
     { title: t("mod.gdpr"), desc: t("mod.gdpr_desc"), tone: "bg-ink/5 text-ink" },
   ];
 
@@ -86,10 +86,15 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
+                aria-busy={loading}
+                aria-label={loading ? t("hero.analyze") : undefined}
                 className="btn-primary flex items-center justify-center min-w-[148px]"
               >
                 {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-sm animate-spin" />
+                  <span
+                    className="w-5 h-5 border-2 border-white/40 border-t-white rounded-sm animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   t("hero.analyze")
                 )}
@@ -208,7 +213,9 @@ export default function Home() {
                 <li>{t("pricing.b2")}</li>
                 <li>{t("pricing.b3")}</li>
               </ul>
-              <button className="btn-secondary w-full">{t("pricing.start")}</button>
+              <a href="/#audit" className="btn-secondary w-full text-center">
+                {t("pricing.start")}
+              </a>
             </div>
 
             <div className="panel rounded-md p-7 flex flex-col border-primary border-2 relative">
@@ -227,7 +234,9 @@ export default function Home() {
                 <li>{t("pricing.p3")}</li>
                 <li>{t("pricing.p4")}</li>
               </ul>
-              <button className="btn-primary w-full">{t("pricing.subscribe")}</button>
+              <a href="/register" className="btn-primary w-full text-center">
+                {t("pricing.subscribe")}
+              </a>
             </div>
 
             <div className="panel rounded-md p-7 flex flex-col">
@@ -243,7 +252,12 @@ export default function Home() {
                 <li>{t("pricing.a3")}</li>
                 <li>{t("pricing.a4")}</li>
               </ul>
-              <button className="btn-secondary w-full">{t("pricing.talk")}</button>
+              <a
+                href="mailto:hello@webhealthiq.com"
+                className="btn-secondary w-full text-center"
+              >
+                {t("pricing.talk")}
+              </a>
             </div>
           </div>
         </section>

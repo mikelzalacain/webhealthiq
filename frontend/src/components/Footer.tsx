@@ -16,7 +16,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="relative w-8 h-8 rounded-md bg-primary overflow-hidden">
                 <Image
-                  src="/logo.png"
+                  src="/icon-64.png"
                   alt="WebHealthIQ"
                   fill
                   sizes="32px"
@@ -28,6 +28,11 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted leading-relaxed">{t("footer.tagline")}</p>
+            <p className="text-sm text-muted mt-3">
+              <a href="mailto:hello@webhealthiq.com" className="hover:text-primary transition-colors">
+                hello@webhealthiq.com
+              </a>
+            </p>
           </div>
 
           <div>
@@ -35,9 +40,9 @@ export default function Footer() {
               {t("footer.product")}
             </h3>
             <ul className="space-y-2.5">
-              <li><Link href="#features" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.modules")}</Link></li>
-              <li><Link href="#pricing" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.pricing")}</Link></li>
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.agencies")}</Link></li>
+              <li><Link href="/#features" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.modules")}</Link></li>
+              <li><Link href="/#pricing" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.pricing")}</Link></li>
+              <li><Link href="/#pricing" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.agencies")}</Link></li>
             </ul>
           </div>
 
@@ -46,9 +51,13 @@ export default function Footer() {
               {t("footer.resources")}
             </h3>
             <ul className="space-y-2.5">
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.seo_guide")}</Link></li>
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.a11y_check")}</Link></li>
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.help")}</Link></li>
+              <li><Link href="/history" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.history")}</Link></li>
+              <li><Link href="/account" className="text-sm text-muted hover:text-primary transition-colors">{t("nav.account")}</Link></li>
+              <li>
+                <a href="mailto:hello@webhealthiq.com" className="text-sm text-muted hover:text-primary transition-colors">
+                  {t("footer.help")}
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -57,9 +66,9 @@ export default function Footer() {
               {t("footer.legal")}
             </h3>
             <ul className="space-y-2.5">
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.privacy")}</Link></li>
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.terms")}</Link></li>
-              <li><Link href="#" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.cookies")}</Link></li>
+              <li><Link href="/privacy" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.privacy")}</Link></li>
+              <li><Link href="/terms" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.terms")}</Link></li>
+              <li><Link href="/cookies" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.cookies")}</Link></li>
             </ul>
           </div>
         </div>

@@ -251,7 +251,7 @@ class PerformanceAnalyzer:
             ttfb_ratio,
         )
 
-        # INP aproximado (solo si hubo interacción observada; en carga fría suele ser null)
+        # INP solo si hubo interacción; en carga fría (auditoría automática) no penalizar.
         if inp_ms is not None:
             inp_status, inp_ratio = self._threshold_status(inp_ms, 200, 500)
             add_check(
@@ -265,11 +265,11 @@ class PerformanceAnalyzer:
         else:
             add_check(
                 self._tt("perf.inp.name"),
-                "warning",
+                "pass",
                 self._tt("perf.inp.none"),
                 self._tt("perf.inp.none_rec"),
                 5,
-                0.5,
+                1.0,
             )
 
         # Peso de recursos

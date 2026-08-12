@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     create_engine,
 )
@@ -33,6 +34,12 @@ PLAN_LIMITS = {
     "agency": 200,
 }
 
+HISTORY_LIMITS = {
+    "free": 10,
+    "pro": 100,
+    "agency": 500,
+}
+
 
 class User(Base):
     __tablename__ = "users"
@@ -42,12 +49,17 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(120), nullable=True)
     company = Column(String(120), nullable=True)
+    brand_name = Column(String(120), nullable=True)
+    brand_primary = Column(String(16), nullable=True)
     terms_accepted_at = Column(DateTime, nullable=True)
     plan = Column(String(32), nullable=False, default="free")
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     usages = relationship("UsageMonth", back_populates="user", cascade="all, delete-orphan")
     audits = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    reset_tokens = relationship(
+        "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UsageMonth(Base):
@@ -69,9 +81,36 @@ class AuditLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     url = Column(String(2048), nullable=False)
     overall_score = Column(Integer, nullable=True)
+    lang = Column(String(8), nullable=True)
+    result_json = Column(Text, nullable=True)
+    insights_json = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="audits")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String(128), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="reset_tokens")
+
+
+def _table_columns(conn, dialect: str, table: str) -> set[str]:
+    # table is an internal identifier only (never user input)
+    if dialect == "sqlite":
+        rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
+        return {r[1] for r in rows}
+    rows = conn.exec_driver_sql(
+        "SELECT column_name FROM information_schema.columns "
+        f"WHERE table_name = '{table}'"
+    ).fetchall()
+    return {r[0] for r in rows}
 
 
 def init_db() -> None:
@@ -79,26 +118,33 @@ def init_db() -> None:
     # Lightweight migrations for existing DBs (SQLite/Postgres).
     with engine.begin() as conn:
         dialect = engine.dialect.name
-        existing = set()
-        if dialect == "sqlite":
-            rows = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
-            existing = {r[1] for r in rows}
-        else:
-            rows = conn.exec_driver_sql(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'users'"
-            ).fetchall()
-            existing = {r[0] for r in rows}
 
-        alters = []
-        if "full_name" not in existing:
-            alters.append("ALTER TABLE users ADD COLUMN full_name VARCHAR(120)")
-        if "company" not in existing:
-            alters.append("ALTER TABLE users ADD COLUMN company VARCHAR(120)")
-        if "terms_accepted_at" not in existing:
-            alters.append("ALTER TABLE users ADD COLUMN terms_accepted_at TIMESTAMP")
-        for stmt in alters:
+        user_cols = _table_columns(conn, dialect, "users")
+        user_alters = []
+        if "full_name" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN full_name VARCHAR(120)")
+        if "company" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN company VARCHAR(120)")
+        if "terms_accepted_at" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN terms_accepted_at TIMESTAMP")
+        if "brand_name" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN brand_name VARCHAR(120)")
+        if "brand_primary" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN brand_primary VARCHAR(16)")
+        for stmt in user_alters:
             conn.exec_driver_sql(stmt)
+
+        audit_cols = _table_columns(conn, dialect, "audit_logs")
+        if audit_cols:  # table exists
+            audit_alters = []
+            if "lang" not in audit_cols:
+                audit_alters.append("ALTER TABLE audit_logs ADD COLUMN lang VARCHAR(8)")
+            if "result_json" not in audit_cols:
+                audit_alters.append("ALTER TABLE audit_logs ADD COLUMN result_json TEXT")
+            if "insights_json" not in audit_cols:
+                audit_alters.append("ALTER TABLE audit_logs ADD COLUMN insights_json TEXT")
+            for stmt in audit_alters:
+                conn.exec_driver_sql(stmt)
 
 
 def get_db():
@@ -130,3 +176,7 @@ def get_or_create_usage(db: Session, user: User) -> UsageMonth:
 
 def plan_limit(plan: str) -> int:
     return PLAN_LIMITS.get(plan or "free", PLAN_LIMITS["free"])
+
+
+def history_limit(plan: str) -> int:
+    return HISTORY_LIMITS.get(plan or "free", HISTORY_LIMITS["free"])

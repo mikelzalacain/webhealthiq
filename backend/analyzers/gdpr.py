@@ -134,7 +134,7 @@ class GDPRAnalyzer:
         found = {privacy: False, cookies: False, notice: False}
 
         for link in self.soup.find_all("a"):
-            text = (link.string or "").lower()
+            text = (link.get_text(" ") or "").lower()
             href = (link.get("href") or "").lower()
             blob = f"{text} {href}"
 

@@ -158,12 +158,8 @@ class SecurityAnalyzer:
             )
             score -= 7
         else:
-            unsafe = []
-            csp_l = csp.lower()
-            if "'unsafe-inline'" in csp_l:
-                unsafe.append("unsafe-inline")
-            if "'unsafe-eval'" in csp_l:
-                unsafe.append("unsafe-eval")
+            # Solo penaliza unsafe-eval; unsafe-inline es necesario en Next.js sin nonces.
+            unsafe = self._csp_script_weaknesses(csp)
             if unsafe:
                 checks.append(
                     self._create_check(
@@ -417,6 +413,18 @@ class SecurityAnalyzer:
             self._tt("common.ok"),
             8,
         )
+
+    @staticmethod
+    def _csp_script_weaknesses(csp: str) -> List[str]:
+        """Solo penaliza unsafe-eval (rompe aislamiento real).
+
+        'unsafe-inline' en style-src/script-src es habitual en SSR/CSR de Next.js
+        sin nonces; exigir lo contrario genera falsos negativos en landings bien hechas.
+        """
+        unsafe: List[str] = []
+        if "'unsafe-eval'" in csp.lower():
+            unsafe.append("unsafe-eval")
+        return unsafe
 
     @staticmethod
     def _parse_hsts_max_age(value: str) -> int | None:

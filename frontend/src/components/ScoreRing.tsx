@@ -30,11 +30,11 @@ export default function ScoreRing({
   const offset = circumference - (displayScore / 100) * circumference;
 
   const getColor = (s: number) => {
-    if (s >= 90) return "#1f8a5b";
-    if (s >= 70) return "#0d6e63";
-    if (s >= 50) return "#c47c14";
-    if (s >= 30) return "#e4572e";
-    return "#c53d3d";
+    if (s >= 90) return "#166534";
+    if (s >= 70) return "#0a554c";
+    if (s >= 50) return "#854d0e";
+    if (s >= 30) return "#9a3412";
+    return "#991b1b";
   };
 
   const getLabel = (s: number) => {
@@ -78,7 +78,14 @@ export default function ScoreRing({
   return (
     <div ref={ref} className={`flex flex-col items-center gap-2 ${className}`}>
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="transform -rotate-90"
+          role="img"
+          aria-label={`${label || "Score"}: ${score} de 100`}
+        >
           <circle
             cx={size / 2}
             cy={size / 2}

@@ -16,7 +16,7 @@ function ResultsContent() {
   const urlParam = searchParams.get("url");
   const langParam = searchParams.get("lang");
   const { t, lang: uiLang, setLang } = useI18n();
-  const { refreshMe, loading: authLoading } = useAuth();
+  const { refreshMe, loading: authLoading, user } = useAuth();
   const auditLang = (langParam === 'en' || langParam === 'eu' || langParam === 'es')
     ? (langParam as Lang)
     : uiLang;
@@ -140,7 +140,7 @@ function ResultsContent() {
       setPdfBusy(true);
       await downloadAuditPdf(result, {
         title: t("results.report"),
-        brand: "WebHealthIQ",
+        brand: user?.brand_name || "WebHealthIQ",
       });
     } catch (err) {
       console.error(err);
@@ -471,16 +471,46 @@ function ResultsContent() {
           {/* Sidebar - Right Column (1/3) */}
           <div className="lg:col-span-1 space-y-6 animate-fade-up stagger-2">
              <div className="card p-6 bg-gradient-to-br from-surface to-surface-hover border-primary/20">
-               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+               <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
                   <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  {t("results.ai_title")}
+                  {result.insights?.title || t("results.ai_title")}
                </h3>
-<p className="text-sm text-muted mb-4">{t("results.ai_desc")}</p>
-               <button className="btn-primary w-full text-sm py-2">
-                 {t("results.ai_cta")}
-               </button>
+               <p className="text-sm text-muted mb-4">
+                 {result.insights?.summary || t("results.ai_desc")}
+               </p>
+               {typeof result.insights?.total_issues === "number" && (
+                 <p className="text-xs text-muted mb-3">
+                   {t("results.ai_issues", { n: result.insights.total_issues })}
+                 </p>
+               )}
+               {Array.isArray(result.insights?.actions) && result.insights.actions.length > 0 ? (
+                 <ul className="space-y-3">
+                   {result.insights.actions.slice(0, 6).map((action: any, idx: number) => (
+                     <li key={idx} className="border border-border/70 rounded-md p-3 bg-surface">
+                       <div className="flex items-center gap-2 mb-1">
+                         <span className={`text-[10px] font-bold uppercase ${
+                           action.status === "fail" ? "text-danger" : "text-warning"
+                         }`}>
+                           {action.status}
+                         </span>
+                         <span className="text-sm font-semibold text-ink">{action.name}</span>
+                       </div>
+                       {action.message && (
+                         <p className="text-xs text-muted">{action.message}</p>
+                       )}
+                       {action.recommendation && (
+                         <p className="text-xs text-muted-dark italic mt-1 border-l-2 border-primary/30 pl-2">
+                           {action.recommendation}
+                         </p>
+                       )}
+                     </li>
+                   ))}
+                 </ul>
+               ) : (
+                 <p className="text-sm text-muted">{t("results.ai_empty")}</p>
+               )}
              </div>
 
              <div className="card p-6">
