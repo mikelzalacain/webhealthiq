@@ -68,9 +68,21 @@ export default function Footer() {
               {t("footer.legal")}
             </h3>
             <ul className="space-y-2.5">
-              <li><Link href="/privacy" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.privacy")}</Link></li>
-              <li><Link href="/terms" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.terms")}</Link></li>
-              <li><Link href="/cookies" className="text-sm text-muted hover:text-primary transition-colors">{t("footer.cookies")}</Link></li>
+              <li>
+                <a href="/privacy" className="text-sm text-muted hover:text-primary transition-colors">
+                  {t("footer.privacy")}
+                </a>
+              </li>
+              <li>
+                <a href="/terms" className="text-sm text-muted hover:text-primary transition-colors">
+                  {t("footer.terms")}
+                </a>
+              </li>
+              <li>
+                <a href="/cookies" className="text-sm text-muted hover:text-primary transition-colors">
+                  {t("footer.cookies")}
+                </a>
+              </li>
             </ul>
           </div>
         </div>

@@ -171,17 +171,17 @@ export default function LoginForm({ mode }: { mode: "login" | "register" }) {
                 />
                 <span>
                   {t("auth.terms_prefix")}{" "}
-                  <Link href="/terms" className="text-primary font-medium">
+                  <a href="/terms" className="text-primary font-medium" target="_blank" rel="noopener noreferrer">
                     {t("auth.terms_link")}
-                  </Link>
+                  </a>
                   ,{" "}
-                  <Link href="/privacy" className="text-primary font-medium">
+                  <a href="/privacy" className="text-primary font-medium" target="_blank" rel="noopener noreferrer">
                     {t("auth.privacy_link")}
-                  </Link>{" "}
+                  </a>{" "}
                   {t("auth.and")}{" "}
-                  <Link href="/cookies" className="text-primary font-medium">
+                  <a href="/cookies" className="text-primary font-medium" target="_blank" rel="noopener noreferrer">
                     {t("footer.cookies")}
-                  </Link>
+                  </a>
                   .
                 </span>
               </label>
