@@ -30,7 +30,7 @@ export default function Navbar() {
       <nav aria-label="Principal" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-md">
+            <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-md bg-transparent">
               <Image
                 src={LOGO_SRC}
                 alt="WebHealthIQ"

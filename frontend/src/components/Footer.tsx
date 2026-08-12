@@ -15,7 +15,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md">
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md bg-transparent">
                 <Image
                   src={LOGO_SRC}
                   alt="WebHealthIQ"
