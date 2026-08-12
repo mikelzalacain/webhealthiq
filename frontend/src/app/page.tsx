@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ScoreRing from "@/components/ScoreRing";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -11,6 +12,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { t, lang } = useI18n();
+  const { user, loading: authLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,12 @@ export default function Home() {
 
     try {
       const params = new URLSearchParams({ url: targetUrl, lang });
-      router.push(`/results?${params.toString()}`);
+      const resultsPath = `/results?${params.toString()}`;
+      if (!authLoading && !user) {
+        router.push(`/login?next=${encodeURIComponent(resultsPath)}`);
+        return;
+      }
+      router.push(resultsPath);
     } catch (err: any) {
       setError(err.message || t("results.error_generic"));
       setLoading(false);

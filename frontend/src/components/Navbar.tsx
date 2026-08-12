@@ -5,10 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { t } = useI18n();
+  const { user, loading, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -43,27 +45,42 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-7">
-            <Link href="#features" className="text-sm font-medium text-muted hover:text-ink transition-colors">
+            <Link href="/#features" className="text-sm font-medium text-muted hover:text-ink transition-colors">
               {t("nav.modules")}
             </Link>
-            <Link href="#how-it-works" className="text-sm font-medium text-muted hover:text-ink transition-colors">
+            <Link href="/#how-it-works" className="text-sm font-medium text-muted hover:text-ink transition-colors">
               {t("nav.method")}
             </Link>
-            <Link href="#pricing" className="text-sm font-medium text-muted hover:text-ink transition-colors">
+            <Link href="/#pricing" className="text-sm font-medium text-muted hover:text-ink transition-colors">
               {t("nav.pricing")}
             </Link>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher />
+            {!loading && user ? (
+              <>
+                <span className="hidden sm:inline text-xs text-muted max-w-[140px] truncate" title={user.email}>
+                  {user.audits_used}/{user.audits_limit} · {user.plan}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="hidden sm:inline-flex text-sm font-semibold text-muted hover:text-ink transition-colors px-2 py-2"
+                >
+                  {t("nav.logout")}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex text-sm font-semibold text-muted hover:text-ink transition-colors px-2 py-2"
+              >
+                {t("nav.login")}
+              </Link>
+            )}
             <Link
-              href="#audit"
-              className="hidden sm:inline-flex text-sm font-semibold text-muted hover:text-ink transition-colors px-2 py-2"
-            >
-              {t("nav.login")}
-            </Link>
-            <Link
-              href="#audit"
+              href="/#audit"
               className="inline-flex items-center justify-center px-3 sm:px-4 py-2.5 text-sm font-semibold text-white bg-accent rounded-md hover:bg-accent-light transition-colors"
             >
               {t("nav.cta")}

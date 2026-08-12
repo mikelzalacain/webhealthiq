@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
+import { AuthProvider } from "@/lib/AuthProvider";
 
 const syne = Syne({
   variable: "--font-display",
@@ -42,9 +43,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col selection:bg-primary/20 bg-mesh">
         <LanguageProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

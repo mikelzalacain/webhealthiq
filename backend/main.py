@@ -1,11 +1,34 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
 from analyzers.seo import SEOAnalyzer
 from i18n import t, normalize_lang
+from db import (
+    AuditLog,
+    init_db,
+    get_db,
+    get_or_create_usage,
+    plan_limit,
+)
+from auth import (
+    create_access_token,
+    get_current_user,
+    get_user_by_email,
+    hash_password,
+    verify_password,
+)
+from db import User
 
 app = FastAPI(title="WebHealthIQ API")
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
 
 BROWSER_HEADERS = {
     "User-Agent": (
@@ -37,6 +60,33 @@ class AuditResponse(BaseModel):
     modules: dict
     timestamp: str
     lang: str
+    audits_used: int | None = None
+    audits_limit: int | None = None
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: dict
+
+
+class MeResponse(BaseModel):
+    id: int
+    email: str
+    plan: str
+    audits_used: int
+    audits_limit: int
+    year_month: str
 
 
 async def fetch_html_with_browser(url: str) -> tuple[str, str]:
@@ -77,10 +127,90 @@ async def fetch_page_html(url: str) -> tuple[str, str]:
     return await fetch_html_with_browser(url)
 
 
+def _user_payload(user: User, used: int, limit: int, year_month: str) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "plan": user.plan,
+        "audits_used": used,
+        "audits_limit": limit,
+        "year_month": year_month,
+    }
+
+
+@app.post("/api/auth/register", response_model=AuthResponse)
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    email = body.email.lower().strip()
+    if get_user_by_email(db, email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    user = User(email=email, password_hash=hash_password(body.password), plan="free")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    usage = get_or_create_usage(db, user)
+    limit = plan_limit(user.plan)
+    token = create_access_token(user.id, user.email)
+    return AuthResponse(
+        access_token=token,
+        user=_user_payload(user, usage.count, limit, usage.year_month),
+    )
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(body: LoginRequest, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, body.email)
+    if not user or not verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    usage = get_or_create_usage(db, user)
+    limit = plan_limit(user.plan)
+    token = create_access_token(user.id, user.email)
+    return AuthResponse(
+        access_token=token,
+        user=_user_payload(user, usage.count, limit, usage.year_month),
+    )
+
+
+@app.get("/api/auth/me", response_model=MeResponse)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    usage = get_or_create_usage(db, user)
+    limit = plan_limit(user.plan)
+    return MeResponse(
+        id=user.id,
+        email=user.email,
+        plan=user.plan,
+        audits_used=usage.count,
+        audits_limit=limit,
+        year_month=usage.year_month,
+    )
+
+
 @app.post("/api/audit", response_model=AuditResponse)
-async def audit_url(request: AuditRequest):
+async def audit_url(
+    request: AuditRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     url = request.url
     lang = normalize_lang(request.lang)
+
+    usage = get_or_create_usage(db, user)
+    limit = plan_limit(user.plan)
+    if usage.count >= limit:
+        raise HTTPException(
+            status_code=402,
+            detail=t(
+                "err.quota",
+                lang,
+                used=usage.count,
+                limit=limit,
+                plan=user.plan,
+            ),
+        )
 
     try:
         try:
@@ -116,6 +246,17 @@ async def audit_url(request: AuditRequest):
 
         overall_score = int(sum(scores) / len(scores)) if scores else 0
 
+        usage.count += 1
+        db.add(
+            AuditLog(
+                user_id=user.id,
+                url=url,
+                overall_score=overall_score,
+            )
+        )
+        db.commit()
+        db.refresh(usage)
+
         return AuditResponse(
             url=url,
             overall_score=overall_score,
@@ -128,6 +269,8 @@ async def audit_url(request: AuditRequest):
             },
             timestamp=datetime.utcnow().isoformat() + "Z",
             lang=lang,
+            audits_used=usage.count,
+            audits_limit=limit,
         )
 
     except HTTPException as he:

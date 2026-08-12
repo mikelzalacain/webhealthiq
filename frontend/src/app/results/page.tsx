@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Lang } from "@/lib/i18n/translations";
 import { downloadAuditPdf } from "@/lib/exportReportPdf";
+import { useAuth } from "@/lib/AuthProvider";
+import { apiFetch, getToken } from "@/lib/authStorage";
 
 function ResultsContent() {
   const searchParams = useSearchParams();
@@ -14,6 +16,7 @@ function ResultsContent() {
   const urlParam = searchParams.get("url");
   const langParam = searchParams.get("lang");
   const { t, lang: uiLang, setLang } = useI18n();
+  const { refreshMe, loading: authLoading } = useAuth();
   const auditLang = (langParam === 'en' || langParam === 'eu' || langParam === 'es')
     ? (langParam as Lang)
     : uiLang;
@@ -34,17 +37,28 @@ function ResultsContent() {
       router.push("/");
       return;
     }
+    if (authLoading) return;
+
+    if (!getToken()) {
+      const next = `/results?${searchParams.toString()}`;
+      router.replace(`/login?next=${encodeURIComponent(next)}`);
+      return;
+    }
+
+    let cancelled = false;
 
     const fetchAudit = async () => {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const response = await fetch(`${apiBase}/api/audit`, {
+        const response = await apiFetch("/api/audit", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ url: urlParam, lang: auditLang }),
         });
+
+        if (response.status === 401) {
+          const next = `/results?${searchParams.toString()}`;
+          router.replace(`/login?next=${encodeURIComponent(next)}`);
+          return;
+        }
 
         if (!response.ok) {
           let detail = t("results.error_backend");
@@ -62,16 +76,23 @@ function ResultsContent() {
         }
 
         const data = await response.json();
-        setResult(data);
+        if (!cancelled) {
+          setResult(data);
+          void refreshMe();
+        }
       } catch (err: any) {
-        setError(err.message || t("results.error_generic"));
+        if (!cancelled) setError(err.message || t("results.error_generic"));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
+    setLoading(true);
     fetchAudit();
-  }, [urlParam, router, auditLang, t]);
+    return () => {
+      cancelled = true;
+    };
+  }, [urlParam, router, auditLang, t, authLoading, refreshMe, searchParams]);
 
   if (loading) {
     return (

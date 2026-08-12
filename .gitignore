@@ -33,3 +33,4 @@ Thumbs.db
 audit_*.json
 playwright-report/
 test-results/
+backend/data/

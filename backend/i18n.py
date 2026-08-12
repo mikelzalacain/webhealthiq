@@ -18,6 +18,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "Internal server error: {error}",
         "eu": "Zerbitzariaren barne-errorea: {error}",
     },
+    "err.quota": {
+        "es": "Has alcanzado el límite de tu plan {plan}: {used}/{limit} auditorías este mes. Sube a Pro para continuar.",
+        "en": "You reached your {plan} plan limit: {used}/{limit} audits this month. Upgrade to Pro to continue.",
+        "eu": "Zure {plan} planaren muga iritsi duzu: {used}/{limit} auditoretza hilabete honetan. Igo Pro-ra jarraitzeko.",
+    },
     # --- Shared ---
     "common.ok": {"es": "Correcto.", "en": "Correct.", "eu": "Zuzena."},
     "common.perfect": {"es": "Perfecto.", "en": "Perfect.", "eu": "Bikain."},
