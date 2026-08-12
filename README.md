@@ -54,7 +54,7 @@ Imagen Docker basada en `mcr.microsoft.com/playwright/python:v1.50.0-jammy`.
 - **Base de datos:** Postgres vía `DATABASE_URL` (p. ej. [Neon](https://neon.tech) u otro proveedor). Sin variable → SQLite en `backend/data/`.
 - **DNS / dominio:** producción en `webhealthiq.com` apuntando al frontend en Vercel; API en `*.onrender.com`.
 
-> **Pagos:** Stripe **no** está implementado (diferido). Los planes `free` / `pro` / `agency` existen en base de datos con límites; el cobro online aún no.
+> **Pagos:** Stripe Billing implementado (Checkout + Customer Portal + webhooks). Sin keys Stripe en local, los endpoints `/api/billing/*` responden **503** y la app sigue funcionando.
 
 ---
 
@@ -80,6 +80,7 @@ webhealthiq/
     ├── .env.example
     ├── main.py               # Endpoints
     ├── auth.py / db.py / emailer.py / insights.py / i18n.py / browser.py
+    ├── billing.py            # Stripe Checkout / Portal / webhooks
     ├── ssrf.py / ratelimit.py  # Anti-SSRF y rate limit in-memory
     ├── analyzers/            # seo, performance, accessibility, security, gdpr
     └── tests/
@@ -115,7 +116,36 @@ Respuesta: `overall_score`, `modules`, `insights` (plan de acción priorizado, m
 | `pro` | 50 | 100 |
 | `agency` | 200 | 500 |
 
-Al superar la cuota, la API responde **402**. Los precios mostrados en la landing (p. ej. Pro 4,99 € / Agencia 14,99 €) son informativos; **no hay checkout Stripe**.
+Al superar la cuota, la API responde **402**. Precios: Pro **4,99 €/mes**, Agencia **14,99 €/mes** (Checkout Stripe).
+
+### Billing (Stripe)
+
+Suscripciones mensuales vía [Stripe Checkout](https://stripe.com/docs/payments/checkout) y gestión con [Customer Portal](https://stripe.com/docs/billing/subscriptions/integrating-customer-portal). Contacto: [hello@webhealthiq.com](mailto:hello@webhealthiq.com).
+
+#### Configurar en Stripe Dashboard
+
+1. Crear dos productos (o precios) de suscripción **mensual** en EUR:
+   - **Pro** — `4.99` EUR / month → copiar el `price_…` a `STRIPE_PRICE_PRO`
+   - **Agency** — `14.99` EUR / month → copiar el `price_…` a `STRIPE_PRICE_AGENCY`
+2. En **Developers → API keys**, copiar la secret key (`sk_test_…` o `sk_live_…`) → `STRIPE_SECRET_KEY`.
+3. En **Developers → Webhooks**, añadir endpoint:
+   - URL: `https://webhealthiq-api.onrender.com/api/billing/webhook`
+   - Eventos: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - Copiar el signing secret (`whsec_…`) → `STRIPE_WEBHOOK_SECRET`
+4. Activar el Customer Portal (Settings → Billing → Customer portal) para que el usuario pueda cancelar/actualizar método de pago.
+5. En Render (y local si pruebas), definir también `APP_URL=https://webhealthiq.com` (success/cancel por defecto: `/account?billing=success` y `/#pricing`). Opcional: `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL`.
+
+Variables documentadas en `backend/.env.example` (placeholders; **nunca** subas secretos reales).
+
+#### Endpoints
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `POST` | `/api/billing/checkout` | Sí | Body `{ "plan": "pro" \| "agency" }` → `{ "url" }` Checkout Session |
+| `POST` | `/api/billing/portal` | Sí | → `{ "url" }` Customer Portal (requiere `stripe_customer_id`) |
+| `POST` | `/api/billing/webhook` | No (firma Stripe) | Actualiza `user.plan` y `stripe_*` |
+
+Sin configuración Stripe completa → **503**. Checkout lleva rate limit (~8/min IP, ~10/h por usuario).
 
 ### Historial
 
@@ -260,7 +290,7 @@ Blueprint en `render.yaml`:
 - Servicio `webhealthiq-api`, runtime Docker.
 - `dockerfilePath: ./backend/Dockerfile`, context `./backend`.
 - Plan free, región `frankfurt`, `healthCheckPath: /health`.
-- Configurar en el dashboard: `DATABASE_URL`, `JWT_SECRET` (generado en el blueprint), `CORS_ORIGINS` si el frontend usa otro origen, y SMTP/`APP_URL` si quieres emails de reset.
+- Configurar en el dashboard: `DATABASE_URL`, `JWT_SECRET` (generado en el blueprint), `CORS_ORIGINS` si el frontend usa otro origen, SMTP/`APP_URL` si quieres emails de reset, y las variables Stripe (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_AGENCY`) para billing.
 - En Render, `JWT_SECRET` debe ser un valor aleatorio fuerte (el blueprint puede generarlo). Si arranca con el default débil, el proceso aborta.
 
 Imagen: Playwright Jammy + `uvicorn main:app --host 0.0.0.0 --port $PORT`.
@@ -283,6 +313,9 @@ Autenticación: header `Authorization: Bearer <access_token>` en rutas protegida
 | `POST` | `/api/auth/forgot-password` | No | Solicitud de reset (respuesta genérica) |
 | `POST` | `/api/auth/reset-password` | No | Body: token, password, password_confirm |
 | `PATCH` | `/api/account/branding` | Sí (agency) | `brand_name`, `brand_primary` |
+| `POST` | `/api/billing/checkout` | Sí | Stripe Checkout (`pro` / `agency`) |
+| `POST` | `/api/billing/portal` | Sí | Stripe Customer Portal |
+| `POST` | `/api/billing/webhook` | Firma Stripe | Sync plan / ids |
 | `POST` | `/api/audit` | Sí | Body: `{ "url": "…", "lang": "es" }` |
 | `GET` | `/api/audits` | Sí | Historial (limitado por plan) |
 | `GET` | `/api/audits/{id}` | Sí | Detalle + result/insights |
@@ -295,7 +328,6 @@ OpenAPI: `/docs` y `/redoc` (FastAPI).
 
 ## Roadmap / fuera de alcance actual
 
-- **Stripe / pasarela de pago** — diferido; planes y cuotas sí existen.
 - Insights con LLM (“IA”) — hoy el motor es por reglas (`rules-v1`).
 - Ampliar marca blanca (p. ej. aplicar `brand_primary` de forma completa en PDF/UI).
 - JWT en cookies HttpOnly (hoy el token vive en `localStorage` del frontend).

@@ -34,6 +34,16 @@ from auth import (
     verify_password,
 )
 from db import User
+from billing import (
+    apply_checkout_completed,
+    apply_subscription_deleted,
+    apply_subscription_updated,
+    construct_webhook_event,
+    create_checkout_session,
+    create_portal_session,
+    require_stripe_billing,
+    stripe_configured,
+)
 from ratelimit import enforce_rate_limit, rate_limit_ip
 from ssrf import MAX_REDIRECTS, SSRFError, validate_url_for_fetch
 
@@ -69,9 +79,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 def on_startup():
     init_db()
     logger.info(
-        "WebHealthIQ API started (production=%s, cors_origins=%s)",
+        "WebHealthIQ API started (production=%s, cors_origins=%s, stripe=%s)",
         is_production(),
         _cors_origins(),
+        "configured" if stripe_configured() else "disabled",
     )
 
 
@@ -139,6 +150,18 @@ class ResetPasswordRequest(BaseModel):
 class BrandingRequest(BaseModel):
     brand_name: str | None = Field(default=None, max_length=120)
     brand_primary: str | None = Field(default=None, max_length=16)
+
+
+class CheckoutRequest(BaseModel):
+    plan: str = Field(description="pro | agency")
+
+
+class CheckoutResponse(BaseModel):
+    url: str
+
+
+class PortalResponse(BaseModel):
+    url: str
 
 
 class AuthResponse(BaseModel):
@@ -446,6 +469,93 @@ def update_branding(
         audits_limit=limit,
         year_month=usage.year_month,
     )
+
+
+@app.post("/api/billing/checkout", response_model=CheckoutResponse)
+def billing_checkout(
+    body: CheckoutRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_stripe_billing()
+    rate_limit_ip(request, scope="billing.checkout", limit=8, window_seconds=60)
+    enforce_rate_limit(
+        f"billing.checkout:user:{user.id}",
+        limit=10,
+        window_seconds=3600,
+    )
+
+    plan = (body.plan or "").lower().strip()
+    if plan not in ("pro", "agency"):
+        raise HTTPException(status_code=400, detail='plan must be "pro" or "agency"')
+
+    try:
+        url = create_checkout_session(user=user, plan=plan)  # type: ignore[arg-type]
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Stripe checkout failed for user_id=%s plan=%s", user.id, plan)
+        raise HTTPException(status_code=502, detail="Could not start Stripe Checkout")
+
+    # Persist customer id if Stripe already assigned one on a previous attempt
+    db.refresh(user)
+    return CheckoutResponse(url=url)
+
+
+@app.post("/api/billing/portal", response_model=PortalResponse)
+def billing_portal(
+    request: Request,
+    user: User = Depends(get_current_user),
+):
+    require_stripe_billing()
+    rate_limit_ip(request, scope="billing.portal", limit=10, window_seconds=60)
+
+    try:
+        url = create_portal_session(user=user)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Stripe portal failed for user_id=%s", user.id)
+        raise HTTPException(status_code=502, detail="Could not open Stripe Customer Portal")
+    return PortalResponse(url=url)
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request, db: Session = Depends(get_db)):
+    """Stripe webhook — raw body + signature verification. No JWT."""
+    require_stripe_billing()
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature")
+    event = construct_webhook_event(payload, sig)
+
+    etype = event["type"] if isinstance(event, dict) else event.type
+    data_object = (
+        event["data"]["object"]
+        if isinstance(event, dict)
+        else event.data.object
+    )
+    # Normalize to dict for handlers
+    if not isinstance(data_object, dict):
+        try:
+            data_object = data_object.to_dict()  # type: ignore[union-attr]
+        except Exception:
+            data_object = dict(data_object)  # type: ignore[arg-type]
+
+    try:
+        if etype == "checkout.session.completed":
+            apply_checkout_completed(db, data_object)
+        elif etype == "customer.subscription.updated":
+            apply_subscription_updated(db, data_object)
+        elif etype == "customer.subscription.deleted":
+            apply_subscription_deleted(db, data_object)
+        else:
+            logger.debug("Stripe webhook ignored type=%s", etype)
+    except Exception:
+        logger.exception("Stripe webhook handler failed type=%s", etype)
+        raise HTTPException(status_code=500, detail="Webhook handler error")
+
+    return {"received": True}
 
 
 @app.post("/api/audit", response_model=AuditResponse)

@@ -1,21 +1,26 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/AuthProvider";
 import { apiFetch, getToken } from "@/lib/authStorage";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import SubscribeButton from "@/components/SubscribeButton";
 
-export default function AccountPage() {
+function AccountContent() {
   const { t } = useI18n();
   const { user, loading: authLoading, refreshMe } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [brandName, setBrandName] = useState("");
   const [brandPrimary, setBrandPrimary] = useState("");
   const [busy, setBusy] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [billingMsg, setBillingMsg] = useState<string | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -32,7 +37,17 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  const isAgency = (user?.plan || "").toLowerCase() === "agency";
+  useEffect(() => {
+    const billing = searchParams.get("billing");
+    if (billing === "success") {
+      setBillingMsg(t("billing.success"));
+      void refreshMe();
+    }
+  }, [searchParams, refreshMe, t]);
+
+  const plan = (user?.plan || "free").toLowerCase();
+  const isAgency = plan === "agency";
+  const isPaid = plan === "pro" || plan === "agency";
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,6 +74,27 @@ export default function AccountPage() {
       setError(err?.message || t("account.error"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const openPortal = async () => {
+    setBillingError(null);
+    setPortalBusy(true);
+    try {
+      const res = await apiFetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.detail === "string" ? data.detail : t("billing.error")
+        );
+      }
+      if (!data.url || typeof data.url !== "string") {
+        throw new Error(t("billing.error"));
+      }
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      setBillingError(err instanceof Error ? err.message : t("billing.error"));
+      setPortalBusy(false);
     }
   };
 
@@ -90,6 +126,48 @@ export default function AccountPage() {
           <Link href="/history" className="text-sm text-primary font-semibold inline-block mt-2">
             {t("nav.history")} →
           </Link>
+        </div>
+
+        <div className="panel rounded-md p-6 mb-6 space-y-4">
+          <h2 className="text-lg font-bold">{t("billing.title")}</h2>
+          <p className="text-sm text-muted">{t("billing.subtitle")}</p>
+
+          {billingMsg && <p className="text-sm text-success">{billingMsg}</p>}
+          {billingError && (
+            <p className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-md px-3 py-2">
+              {billingError}
+            </p>
+          )}
+
+          {isPaid ? (
+            <button
+              type="button"
+              onClick={() => void openPortal()}
+              disabled={portalBusy}
+              className="btn-secondary w-full disabled:opacity-60"
+            >
+              {portalBusy ? t("billing.redirecting") : t("billing.manage")}
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted">{t("billing.upgrade_hint")}</p>
+              <SubscribeButton plan="pro" className="btn-primary w-full text-center disabled:opacity-60" />
+              <SubscribeButton
+                plan="agency"
+                className="btn-secondary w-full text-center disabled:opacity-60"
+              />
+            </div>
+          )}
+
+          {plan === "pro" && (
+            <div className="pt-2">
+              <p className="text-xs text-muted mb-2">{t("billing.upgrade_agency_hint")}</p>
+              <SubscribeButton
+                plan="agency"
+                className="btn-secondary w-full text-center disabled:opacity-60"
+              />
+            </div>
+          )}
         </div>
 
         <div className="panel rounded-md p-6">
@@ -139,5 +217,13 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[50vh]" />}>
+      <AccountContent />
+    </Suspense>
   );
 }

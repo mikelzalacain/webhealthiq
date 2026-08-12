@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ScoreRing from "@/components/ScoreRing";
+import SubscribeButton from "@/components/SubscribeButton";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import { useAuth } from "@/lib/AuthProvider";
 
@@ -234,9 +235,7 @@ export default function Home() {
                 <li>{t("pricing.p3")}</li>
                 <li>{t("pricing.p4")}</li>
               </ul>
-              <a href="/register" className="btn-primary w-full text-center">
-                {t("pricing.subscribe")}
-              </a>
+              <SubscribeButton plan="pro" />
             </div>
 
             <div className="panel rounded-md p-7 flex flex-col">
@@ -252,12 +251,10 @@ export default function Home() {
                 <li>{t("pricing.a3")}</li>
                 <li>{t("pricing.a4")}</li>
               </ul>
-              <a
-                href="mailto:hello@webhealthiq.com"
-                className="btn-secondary w-full text-center"
-              >
-                {t("pricing.talk")}
-              </a>
+              <SubscribeButton
+                plan="agency"
+                className="btn-secondary w-full text-center disabled:opacity-60"
+              />
             </div>
           </div>
         </section>

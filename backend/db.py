@@ -53,6 +53,8 @@ class User(Base):
     brand_primary = Column(String(16), nullable=True)
     terms_accepted_at = Column(DateTime, nullable=True)
     plan = Column(String(32), nullable=False, default="free")
+    stripe_customer_id = Column(String(255), nullable=True, index=True)
+    stripe_subscription_id = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     usages = relationship("UsageMonth", back_populates="user", cascade="all, delete-orphan")
@@ -131,6 +133,10 @@ def init_db() -> None:
             user_alters.append("ALTER TABLE users ADD COLUMN brand_name VARCHAR(120)")
         if "brand_primary" not in user_cols:
             user_alters.append("ALTER TABLE users ADD COLUMN brand_primary VARCHAR(16)")
+        if "stripe_customer_id" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)")
+        if "stripe_subscription_id" not in user_cols:
+            user_alters.append("ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255)")
         for stmt in user_alters:
             conn.exec_driver_sql(stmt)
 
