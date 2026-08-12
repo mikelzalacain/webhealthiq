@@ -2,6 +2,7 @@ from typing import Dict, Any, List
 from playwright.async_api import async_playwright
 from axe_playwright_python.async_playwright import Axe
 from i18n import t, normalize_lang
+from browser import launch_chromium
 
 
 KNOWN_RULES = {
@@ -26,7 +27,7 @@ class AccessibilityAnalyzer:
 
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                browser = await launch_chromium(p)
                 page = await browser.new_page()
                 await page.goto(self.url, wait_until="networkidle", timeout=45000)
 

@@ -20,7 +20,7 @@ BROWSER_HEADERS = {
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,9 +41,10 @@ class AuditResponse(BaseModel):
 
 async def fetch_html_with_browser(url: str) -> tuple[str, str]:
     from playwright.async_api import async_playwright
+    from browser import launch_chromium
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await launch_chromium(p)
         page = await browser.new_page()
         response = await page.goto(url, wait_until="domcontentloaded", timeout=45000)
         if response is None:
@@ -138,3 +139,8 @@ async def audit_url(request: AuditRequest):
 @app.get("/")
 def read_root():
     return {"message": "WebHealthIQ Backend is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

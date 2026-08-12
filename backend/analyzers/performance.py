@@ -1,6 +1,7 @@
 from typing import Dict, Any, List, Optional
 from playwright.async_api import async_playwright
 from i18n import t, normalize_lang
+from browser import launch_chromium
 
 
 class PerformanceAnalyzer:
@@ -16,7 +17,7 @@ class PerformanceAnalyzer:
     async def analyze(self) -> Dict[str, Any]:
         try:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                browser = await launch_chromium(p)
                 context = await browser.new_context(
                     viewport={"width": 1366, "height": 768},
                     user_agent=(
