@@ -223,8 +223,8 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="panel rounded-md p-7 flex flex-col border-primary border-2 relative">
-              <span className="absolute -top-3 left-6 bg-primary text-white text-[11px] font-semibold tracking-wide uppercase px-2.5 py-1 rounded-sm">
+            <div className="panel rounded-md p-7 flex flex-col border-accent border-2 relative shadow-[0_0_0_1px_rgba(228,87,46,0.12)]">
+              <span className="absolute -top-3 left-6 bg-accent text-white text-[11px] font-semibold tracking-wide uppercase px-2.5 py-1 rounded-sm">
                 {t("pricing.recommended")}
               </span>
               <h3 className="font-display text-xl font-bold text-ink mb-1">{t("pricing.pro")}</h3>
