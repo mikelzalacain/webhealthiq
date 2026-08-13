@@ -93,6 +93,7 @@ export default function HistoryDetailPage() {
           overall_score: score,
           timestamp: data.result.timestamp || data.created_at,
           modules,
+          insights: insights || data.result.insights || null,
         },
         {
           title: t("history.detail_title"),
